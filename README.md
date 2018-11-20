@@ -7,6 +7,12 @@ The idea is that N-nodes each connect to a central VPN-server, using web-sockets
 * TODO
   * Image here
 
+While you could use this software to mask your laptop's IP while traveling, instead showing the IP of the VPN-server as being the source of connections this is _not_ the expected use-case.
+
+This software is primarily designed to allow virtual machines, located at different hosting companies, to securely and privately communicate with each other, and present services over "local" IP addresses.
+
+> Of course the VPN will be a single point of failure, but being a simple service and easily deployed it should be trivial to spin up a replacement in a hurry.
+
 
 ## Encryption
 
