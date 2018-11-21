@@ -9,37 +9,50 @@ The following image illustrates the expected setup:
 
 ![Screenshot](_media/vpn.png)
 
-While you could use this software to mask your laptop's IP while traveling, instead showing the IP of the VPN-server as being the source of connections this is _not_ the expected use-case.
+While you _could_ use this software to mask your laptop's IP while traveling, instead showing the IP of the VPN-server as being the source of connections this is __not__ the expected use-case.
 
-This software is primarily designed to allow virtual machines, located at different hosting companies, to securely and privately communicate with each other, and present services over "local" IP addresses.
-
-> Of course the VPN will be a single point of failure, but being a simple service and easily deployed it should be trivial to spin up a replacement in a hurry.
+> The VPN will be a single point of failure, but being a simple service and easily deployed it should be trivial to spin up a replacement in a hurry.
 
 
 ## Encryption
 
-The VPN-server __does not__ implement any kind of encryption itself, nor does it handle access-control beyond a shared-secret.
+The VPN-server __does not__ implement any kind of encryption itself, nor does it handle access-control beyond the use of a shared-secret.
 
-Is this insane?  Actually no.  I'd rather add no encryption than badly implemented encryption, and because we're using websockets we can prevent eavesdroppers and man-in-the-middle attacks via the use of TLS.
+Is this insane?  Actually no.  I'd rather add no encryption than badly implemented encryption!
 
-In practice this is secure.
+* The use of TLS prevents traffic from being sniffed.
+* The use of a shared-secret prevents rogue agents from connecting to your VPN-server.
+
+In practice I believe this is secure enough.
 
 
-## Setup - Server
+## Installation
 
 First of all install the binary:
 
     go get ..
 
-Now you're ready to configure the VPN-server.  Configuring a VPN server requires two things:
+..
+
+
+
+## VPN-Server Setup
+
+Configuring a VPN server requires three things:
 
 * The `simple-vpn` binary to be running in server-mode.
+  * This requires a configuration-file to be specified.
 * Your webserver to proxy (websocket) requests to it.
-  * You __must__ setup SSL to avoid sniffing.
+  * You __must__ ensure that your webserver uses TLS to avoid sniffing.
 
-To launch the server you simply need to run:
 
-     # simple-vpn server [-verbose]
+A minimal configuration file for the server looks like this:
+
+* [etc/server.cfg](etc/server.cfg)
+
+With your configuration-file you can now launch the VPN-server like so:
+
+     # simple-vpn server ./server.cfg
 
 To proxy traffic to this server, via `nginx`, you could have a configuration file like this:
 
@@ -80,13 +93,23 @@ To proxy traffic to this server, via `nginx`, you could have a configuration fil
   * In this example we've chosen https://vpn.example.com/vpn to pass through to `simple-vpn`.
 
 
-## Setup - Clients
+## VPN-Client Setup
 
-Install the binary upon the client hosts you wish to link, and launch them like so:
+Install the binary upon the client hosts you wish to link, and launch them with the name of a configuration-file:
 
-    $ simple-vpn client https://vpn.example.com/vpn
+    $ simple-vpn client client.cfg
 
-The argument here is the end-point which you configured your webserver to proxy.
+There is a sample client configuration file here:
+
+* [etc/client.cfg](etc/client.cfg)
+
+The configuration file has two mandatory settings:
+
+* `key`
+  * Specifies the shared key to use to authenticate.
+* `vpn`
+  * Specifies the VPN end-point to connect to.
+
 
 
 ## Advanced
