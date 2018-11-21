@@ -1,11 +1,13 @@
 # Simple-VPN
 
-This project is a VPN-server, written in golang, using websockets as a transport.
+This project is a VPN-server, written in golang, using websockets as a transport.  The idea is that multiple-nodes each connect to a central VPN-server, and once connected they can talk to _each other_ securely, regardless of NAT and location.
 
-The idea is that N-nodes each connect to a central VPN-server, using web-sockets, and can then talk to each other via that shared connection.
+The following image illustrates the expected setup:
 
-* TODO
-  * Image here
+* Three hosts each connect to the central VPN host.
+* Once they're connected any host can talk to the others, securely & privately.
+
+![Screenshot](_media/vpn.png)
 
 While you could use this software to mask your laptop's IP while traveling, instead showing the IP of the VPN-server as being the source of connections this is _not_ the expected use-case.
 
