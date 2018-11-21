@@ -39,13 +39,12 @@ install this software by running:
 
 ## VPN-Server Setup
 
-Configuring a VPN server requires three things:
+Configuring a VPN server requires two things:
 
 * The `simple-vpn` binary to be running in server-mode.
-  * This requires a configuration-file to be specified.
+  * This requires the use of a simple configuration-file.
 * Your webserver to proxy (websocket) requests to it.
   * You __must__ ensure that your webserver uses TLS to avoid sniffing.
-
 
 A minimal configuration file for the server looks like this:
 
@@ -78,6 +77,7 @@ To proxy traffic to this server, via `nginx`, you could have a configuration fil
         ## VPN server ..
         location /vpn {
 
+           proxy_set_header        X-Forwarded-For $remote_addr;
            proxy_pass http://127.0.0.1:9000;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
