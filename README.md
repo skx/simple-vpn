@@ -98,7 +98,7 @@ To proxy traffic to this server, via `nginx`, you could have a configuration fil
 
 Install the binary upon the client hosts you wish to link, and launch them with the name of a configuration-file:
 
-    $ simple-vpn client client.cfg
+    # simple-vpn client client.cfg
 
 There is a sample client configuration file here:
 
@@ -107,17 +107,22 @@ There is a sample client configuration file here:
 The configuration file has two mandatory settings:
 
 * `key`
-  * Specifies the shared key to use to authenticate.
+  * Specifies the shared key with which to authenticate.
 * `vpn`
   * Specifies the VPN end-point to connect to.
 
 
 
-## Advanced
+## Advanced Configuration
 
-* Static IPs
-* Routing
-* Proxying
+The server will assign each client which connects the next unused
+IP address from the range it is configured to serve.
+
+Because each client identifies itself with the hostname of the local
+system it is possible to map static IP addresses to any remote host,
+which is useful if you wish to setup DNS entries, etc.
+
+To setup a static IP see the commented-out sections in the [server.cfg](etc/server.cfg) file.
 
 
 Steve
