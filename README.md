@@ -28,11 +28,12 @@ In practice I believe this is secure enough.
 
 ## Installation
 
-First of all install the binary:
+Providing you have a working go-installation you should be able to
+install this software by running:
 
-    go get ..
+    go get -u github.com/skx/simple-vpn
 
-..
+> **NOTE**: If you've previously downloaded the code this will update your installation to the most recent available version.
 
 
 
