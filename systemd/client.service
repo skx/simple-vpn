@@ -1,0 +1,16 @@
+[Unit]
+Description=simple-vpn client
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/
+ExecStart=/usr/local/bin/simple-vpn client /etc/simple-vpn/client.cfg
+KillMode=process
+Restart=always
+StartLimitInterval=2
+StartLimitBurst=20
+
+[Install]
+WantedBy=multi-user.target
