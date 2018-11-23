@@ -1,3 +1,8 @@
+[![Travis CI](https://img.shields.io/travis/skx/simple-vpn/master.svg?style=flat-square)](https://travis-ci.org/skx/simple-vpn)
+[![Go Report Card](https://goreportcard.com/badge/github.com/skx/simple-vpn)](https://goreportcard.com/report/github.com/skx/simple-vpn)
+[![license](https://img.shields.io/github/license/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/blob/master/LICENSE)
+[![Release](https://img.shields.io/github/release/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/releases/latest)
+
 # Simple-VPN
 
 This project is a VPN-server, written in golang, using websockets as a transport.  The idea is that multiple-nodes each connect to a central VPN-server, and once connected they can talk to _each other_ securely, regardless of NAT and location.
