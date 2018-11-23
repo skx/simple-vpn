@@ -7,10 +7,12 @@ BASE="simple-vpn"
 go get -t -v -d $(go list ./...)
 
 #
-# We build on multiple platforms/archs
+# We could build on multiple platforms/archs.
 #
-BUILD_PLATFORMS="linux windows darwin freebsd"
-BUILD_ARCHS="amd64 386"
+# Except we use CGO, so we can't.
+#
+BUILD_PLATFORMS="linux"
+BUILD_ARCHS="amd64"
 
 # For each platform
 for OS in ${BUILD_PLATFORMS[@]}; do
