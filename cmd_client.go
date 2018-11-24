@@ -22,8 +22,9 @@ import (
 
 // clientCmd is the structure for this sub-command.
 //
-// Currently there are no members.
 type clientCmd struct {
+	// The configuration file
+	config *config.Reader
 }
 
 //
@@ -105,7 +106,8 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	//
 	// Parse the configuration file.
 	//
-	cnf, err := config.New(f.Args()[0])
+	var err error
+	p.config, err = config.New(f.Args()[0])
 	if err != nil {
 		fmt.Printf("Failed to read the configuration file %s - %s\n", f.Args()[0], err.Error())
 		return subcommands.ExitFailure
@@ -114,7 +116,7 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	//
 	// Get the end-point to which we're going to connect.
 	//
-	endPoint := cnf.Get("vpn")
+	endPoint := p.config.Get("vpn")
 	if endPoint == "" {
 		fmt.Printf("The configuration file didn't include a vpn=... line\n")
 		fmt.Printf("We don't know where to connect!  Aborting.\n")
@@ -124,7 +126,7 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	//
 	// Get the shared-secret.
 	//
-	key := cnf.Get("key")
+	key := p.config.Get("key")
 	if key == "" {
 		fmt.Printf("The configuration file didn't include key=... line\n")
 		fmt.Printf("That means authentication is impossible! Aborting.\n")
@@ -134,7 +136,7 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	//
 	// Get our client-name
 	//
-	name := cnf.Get("name")
+	name := p.config.Get("name")
 	if name == "" {
 		//
 		// If none is set then send the hostname.
@@ -215,6 +217,9 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			os.Exit(1)
 		}
 
+		//
+		// Create the TUN device
+		//
 		var waterMode water.DeviceType
 		waterMode = water.TUN
 
@@ -226,14 +231,51 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			os.Exit(1)
 		}
 
-		log.Printf("Opened %s", iface.Name())
-
+		//
+		// Now configure it.
+		//
 		err = p.configureClient(iface, ipStr, subnetStr, mtu, gatewayStr)
 		if err != nil {
 			panic(err)
 		}
 
-		log.Printf("Configured interface. Starting operations.")
+		//
+		// If we reached this point we're basically done.
+		//
+		// Launch the "up" script, if we can.
+		//
+		if p.config.Get("up") != "" {
+
+			//
+			// Setup the environment.
+			//
+			os.Setenv("DEVICE", iface.Name())
+			os.Setenv("CLIENT_IP", ipStr)
+			os.Setenv("SERVER_IP", gatewayStr)
+			os.Setenv("SUBNET", subnetStr)
+			os.Setenv("MTU", mtuStr)
+
+			//
+			// Launch the script.
+			//
+			cmd := p.config.Get("up")
+
+			x := exec.Command(cmd)
+			x.Stdout = os.Stdout
+			x.Stderr = os.Stderr
+			err := x.Run()
+			if err != nil {
+				fmt.Printf("Failed to run %s - %s",
+					cmd, err.Error())
+
+			}
+
+		}
+
+		//
+		// Now we start shuffling packets.
+		//
+		log.Printf("Configured interface, the VPN is up!")
 		err = socket.SetInterface(iface)
 		if err != nil {
 			fmt.Printf("Failed bind socket-magic to TUN device: %s\n", err.Error())
