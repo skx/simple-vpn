@@ -133,7 +133,10 @@ func (p *serverCmd) raiseNetworkDevice(dev *water.Interface, mtu int) error {
 	return nil
 }
 
-// Dump outputs a list of all the connected clients
+// Dump outputs a list of all the connected clients.
+//
+// This is called when a new client connects, or an existing client
+// disconnects.
 func (p *serverCmd) Dump() {
 	p.assignedMutex.Lock()
 
@@ -204,6 +207,8 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	return "", fmt.Errorf("Out of IP addresses")
 }
 
+// incIP is used to increment the given IP object; it is used for iterating
+// over the CIDR range the server uses for clients.
 func incIP(ip net.IP) {
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++
@@ -345,11 +350,10 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	return subcommands.ExitSuccess
 }
 
-//
 // RemoteIP retrieves the remote IP address of the requesting HTTP-client.
 //
-// This is used for logging.
-//
+// This is used for logging, and storing the remote (public) IP of each
+// connecting clinet.
 func RemoteIP(request *http.Request) string {
 
 	//
@@ -435,12 +439,13 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Client '%s' [IP:%s] assigned %s\n", name, ip, clientIP)
 
 	//
-	// TODO: Have a status-endpoint
+	// TODO: Have a status-endpoint so we can query the list of
+	// connected clients whenever we want.
 	//
 	p.Dump()
 
 	//
-	// The interface for the client.
+	// Create an interface for the client.
 	//
 	var iface *water.Interface
 	iface, err = water.New(water.Config{
@@ -460,7 +465,8 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 		// This is the reaper-function which is invoked
 		// when the client goes away, and will ensure
 		// that our IP-record is removed, such that
-		// we don't leak connected-counts.
+		// we don't leak connected-counts (and also that
+		// we free up the IP that was previously assigned).
 		//
 		func(x string) {
 			p.assignedMutex.Lock()
