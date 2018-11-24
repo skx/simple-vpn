@@ -465,7 +465,7 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 		func(x string) {
 			p.assignedMutex.Lock()
 
-			// Only reap if alreayd gone.
+			// Only reap if we've not already done so.
 			if p.assigned[x] != nil {
 				log.Printf("Reaped dead-client with IP %s\n", x)
 				p.assigned[x] = nil
