@@ -486,6 +486,35 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 		})
 
 	//
+	// Launch the "up" script, if we can.
+	//
+	if p.Config.Get("up") != "" {
+
+		//
+		// Setup the environment.
+		//
+		os.Setenv("INTERNAL_IP", clientIP)
+		os.Setenv("EXTERNAL_IP", ip)
+		os.Setenv("NAME", name)
+
+		//
+		// Launch the script.
+		//
+		cmd := p.Config.Get("up")
+
+		x := exec.Command(cmd)
+		x.Stdout = os.Stdout
+		x.Stderr = os.Stderr
+		err := x.Run()
+		if err != nil {
+			fmt.Printf("Failed to run %s - %s",
+				cmd, err.Error())
+
+		}
+
+	}
+
+	//
 	// Send the `init` command to the client, which will ensure that
 	// it configures itself.
 	//
