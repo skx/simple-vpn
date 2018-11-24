@@ -20,7 +20,7 @@ While it is possible to use this software to mask your laptop's IP while traveli
 It should be noted that the VPN-server will become a single point of failure if you're using it to join (say) a database-host located at Hetzner with a number of webserver-nodes split between Linode and Digital Ocean, but being a simple service, easy to deploy, it should be trivial to spin up a replacement in a hurry.
 
 
-## Encryption
+## Encryption & Overhead
 
 The VPN-server __does not__ implement any kind of encryption itself, nor does it handle access-control beyond the use of a shared-secret.
 
@@ -32,6 +32,8 @@ Is this insane?  Actually no.  I'd rather add no encryption than badly implement
   * This means a user cannot join your private network and attempt to sniff traffic that way.
 
 I believe this solution is "secure enough", but if you have concerns you can ensure that all the traffic you send over it uses TLS itself, for example database-connections can use TLS, etc.
+
+Because traffic routed between two nodes on their private IP addresses has to be routed via the VPN-server expect to see [approximately 50% overhead](https://github.com/skx/simple-vpn/issues/9).
 
 
 ## Installation
