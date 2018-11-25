@@ -16,7 +16,7 @@ import (
 // Type of reaping function
 type reap func(string)
 
-var lastCommandId uint64 = 0
+var lastCommandId uint64
 
 var defaultMac = [6]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
@@ -219,7 +219,7 @@ func (s *Socket) tryServeIfaceRead() {
 	}()
 }
 
-// Server is the main-driver which never returns
+// Serve is the main-driver which never returns
 // Handle proxying data back and forth..
 func (s *Socket) Serve() {
 	s.writeLock.Lock()
