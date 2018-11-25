@@ -25,12 +25,15 @@ var macLock sync.RWMutex
 var allSockets = make(map[*Socket]*Socket)
 var allSocketsLock sync.RWMutex
 
+// FindSocketByMAC finds the correct socket, by looking for the
+// specified MAC address.
 func FindSocketByMAC(mac MacAddr) *Socket {
 	macLock.RLock()
 	defer macLock.RUnlock()
 	return macTable[mac]
 }
 
+// BroadcastMessage sends the given data over all sockets.
 func BroadcastMessage(msgType int, data []byte, skip *Socket) {
 	allSocketsLock.RLock()
 	targetList := make([]*Socket, 0)
@@ -47,8 +50,12 @@ func BroadcastMessage(msgType int, data []byte, skip *Socket) {
 	}
 }
 
+// CommandHandler is the signature of a function which can be
+// triggered via a command over our websocket connection.
+// We use if for `init`.
 type CommandHandler func(args []string) error
 
+// Socket holds state about our connection.
 type Socket struct {
 	clientIP      string
 	conn          *websocket.Conn
@@ -63,6 +70,8 @@ type Socket struct {
 	reaped        bool
 }
 
+// MakeSocket is our constructor.  It ties a websocket connection to
+// an interface connection.
 func MakeSocket(clientIP string, conn *websocket.Conn, iface *water.Interface, fn reap) *Socket {
 	return &Socket{
 		clientIP:      clientIP,
@@ -78,23 +87,29 @@ func MakeSocket(clientIP string, conn *websocket.Conn, iface *water.Interface, f
 	}
 }
 
+// AddCommandHandler binds a function-name to a handler, which is
+// used in our websocket connection.
 func (s *Socket) AddCommandHandler(command string, handler CommandHandler) {
 	s.handlers[command] = handler
 }
 
+// Wait waits for our socket to be done.
 func (s *Socket) Wait() {
 	s.wg.Wait()
 }
 
+// rawSendCommand sends a "command" over our websocket link
 func (s *Socket) rawSendCommand(commandId string, command string, args ...string) error {
 	return s.WriteMessage(websocket.TextMessage,
 		[]byte(fmt.Sprintf("%s|%s|%s", commandId, command, strings.Join(args, "|"))))
 }
 
+// SendCommand sends a "command" over our websocket link
 func (s *Socket) SendCommand(command string, args ...string) error {
 	return s.rawSendCommand(fmt.Sprintf("%d", atomic.AddUint64(&lastCommandId, 1)), command, args...)
 }
 
+// WriteMessage sends data over our socket.
 func (s *Socket) WriteMessage(msgType int, data []byte) error {
 	s.writeLock.Lock()
 	err := s.conn.WriteMessage(msgType, data)
@@ -106,6 +121,8 @@ func (s *Socket) WriteMessage(msgType int, data []byte) error {
 	return err
 }
 
+// closeDown closes a websocket and interface.
+// It invokes the call-back "reap" function too.
 func (s *Socket) closeDone() {
 	s.wg.Done()
 	s.Close()
@@ -122,6 +139,7 @@ func (s *Socket) closeDone() {
 	}
 }
 
+// SetInterface sets the given network-interface to be associated with us.
 func (s *Socket) SetInterface(iface *water.Interface) error {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
@@ -134,6 +152,7 @@ func (s *Socket) SetInterface(iface *water.Interface) error {
 	return nil
 }
 
+// setMACFrom updates the MAC-address for this socket, unless already set.
 func (s *Socket) setMACFrom(msg []byte) {
 	srcMac := GetSrcMAC(msg)
 	if !MACIsUnicast(srcMac) || srcMac == s.mac {
@@ -149,6 +168,7 @@ func (s *Socket) setMACFrom(msg []byte) {
 	macTable[srcMac] = s
 }
 
+// Close closes our interface and websocket.
 func (s *Socket) Close() {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
@@ -172,6 +192,7 @@ func (s *Socket) Close() {
 	allSocketsLock.Unlock()
 }
 
+// tryServeIfaceRead handles reading from our interface
 func (s *Socket) tryServeIfaceRead() {
 	if s.iface == nil {
 		return
@@ -198,6 +219,8 @@ func (s *Socket) tryServeIfaceRead() {
 	}()
 }
 
+// Server is the main-driver which never returns
+// Handle proxying data back and forth..
 func (s *Socket) Serve() {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
