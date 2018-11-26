@@ -152,6 +152,7 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	// If that worked, and the IP is free then use it.
 	//
 	if fixed != "" && p.assigned[fixed] == nil {
+
 		p.assigned[fixed] = &connection{name: name, localIP: fixed, remoteIP: remote}
 
 		p.assignedMutex.Unlock()
@@ -164,6 +165,11 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
 
 		s := ip.String()
+
+		// Skip the first IP.
+		if strings.HasSuffix(s, ".0") {
+			continue
+		}
 
 		if p.assigned[s] == nil {
 			p.assigned[s] = &connection{name: name, localIP: s, remoteIP: remote}
@@ -242,6 +248,10 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
 
 		s := ip.String()
+
+		if strings.HasSuffix(s, ".0") {
+			continue
+		}
 
 		p.assigned[s] = nil
 
