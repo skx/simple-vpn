@@ -282,6 +282,12 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			os.Exit(1)
 		}
 
+		//
+		// Send a command to the server, asking it to update all
+		// clients with the list of known-peers (and their IPs).
+		//
+		socket.SendCommand("refresh-peers", "now")
+
 		return nil
 	})
 	socket.Serve()
