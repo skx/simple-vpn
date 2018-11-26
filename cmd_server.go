@@ -133,37 +133,6 @@ func (p *serverCmd) raiseNetworkDevice(dev *water.Interface, mtu int) error {
 	return nil
 }
 
-// Dump outputs a list of all the connected clients.
-//
-// This is called when a new client connects, or an existing client
-// disconnects.
-func (p *serverCmd) Dump() {
-	p.assignedMutex.Lock()
-
-	count := 0
-
-	fmt.Printf("Connections:\n")
-	for _, client := range p.assigned {
-
-		if client != nil && client.name != "vpn-server" {
-
-			fmt.Printf("\t%s\t%s\t%s\n", client.remoteIP, client.localIP, client.name)
-			count += 1
-		}
-	}
-
-	//
-	// Numbers are fun.
-	//
-	if count == 1 {
-		fmt.Printf("1 client connected.\n")
-	} else {
-		fmt.Printf("%d clients connected.\n", count)
-	}
-
-	p.assignedMutex.Unlock()
-}
-
 // pickIP is a function which returns the IP address to use for the
 // specific connecting client.
 //
@@ -470,12 +439,6 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 	// Show what we found.
 	//
 	fmt.Printf("Client '%s' [IP:%s] assigned %s\n", name, ip, clientIP)
-
-	//
-	// TODO: Have a status-endpoint so we can query the list of
-	// connected clients whenever we want.
-	//
-	p.Dump()
 
 	//
 	// Create an interface for the client.
