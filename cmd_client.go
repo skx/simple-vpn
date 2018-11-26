@@ -3,7 +3,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -282,8 +284,82 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			os.Exit(1)
 		}
 
+		//
+		// Send a command to the server, asking it to update all
+		// clients with the list of known-peers (and their IPs).
+		//
+		socket.SendCommand("refresh-peers", "now")
+
 		return nil
 	})
+
+	//
+	// This function is invoked when clients join/leave the VPN.
+	//
+	// It is the function which is called as a result of the server
+	// handling the `refresh` command that we sent at join-time.
+	//
+	socket.AddCommandHandler("update-peers", func(args []string) error {
+
+		//
+		// If the client has not defined a `peers` command then
+		// we can just return here.
+		//
+		cmd := p.config.Get("peers")
+		if cmd == "" {
+			return nil
+		}
+
+		//
+		// OK we have a command.
+		//
+		// We're given an array of strings such as:
+		//
+		//  "1.2.3.3\tsteve",
+		//  "1.2.3.4\tgold",
+		//
+		// Convert that into a simple structure.
+		//
+		type Client struct {
+			Name string
+			IP   string
+		}
+
+		//
+		// The thing we'll send
+		//
+		var connected []Client
+
+		//
+		// Populate, appropriately.
+		//
+		for _, ent := range args {
+			out := strings.Split(ent, "\t")
+			connected = append(connected, Client{Name: out[1], IP: out[0]})
+		}
+
+		//
+		// Convert to JSON.
+		//
+		obj, err := json.Marshal(connected)
+		if err != nil {
+			fmt.Printf("Failed to convert object to JSON: %s\n", err.Error())
+			return err
+		}
+
+		x := exec.Command(cmd)
+		x.Stdin = bytes.NewBuffer(obj)
+		x.Stdout = os.Stdout
+		x.Stderr = os.Stderr
+		err = x.Run()
+		if err != nil {
+			fmt.Printf("Failed to run %s - %s",
+				cmd, err.Error())
+			return err
+		}
+		return nil
+	})
+
 	socket.Serve()
 	socket.Wait()
 

@@ -14,7 +14,7 @@ import (
 )
 
 // Type of reaping function
-type reap func(string)
+type reap func(Socket, string)
 
 var lastCommandId uint64
 
@@ -109,6 +109,21 @@ func (s *Socket) SendCommand(command string, args ...string) error {
 	return s.rawSendCommand(fmt.Sprintf("%d", atomic.AddUint64(&lastCommandId, 1)), command, args...)
 }
 
+// BroadcastCommand sends the given data over all sockets.
+func (s *Socket) BroadcastCommand(command string, args []string) error {
+	allSocketsLock.RLock()
+	targetList := make([]*Socket, 0)
+	for _, v := range allSockets {
+		targetList = append(targetList, v)
+	}
+	allSocketsLock.RUnlock()
+
+	for _, v := range targetList {
+		v.SendCommand(command, args...)
+	}
+	return nil
+}
+
 // WriteMessage sends data over our socket.
 func (s *Socket) WriteMessage(msgType int, data []byte) error {
 	s.writeLock.Lock()
@@ -132,7 +147,7 @@ func (s *Socket) closeDone() {
 	// Then do so.
 	if s.reaper != nil && s.reaped == false {
 		// invoke
-		s.reaper(s.clientIP)
+		s.reaper(*s, s.clientIP)
 
 		// avoid repeats.
 		s.reaped = true
