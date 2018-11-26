@@ -374,6 +374,39 @@ func RemoteIP(request *http.Request) string {
 	return (address)
 }
 
+// refreshPeers broadcasts the list of our connected peers to every
+// host which is still connected.
+//
+// It is called when either a new client connects, or a host is reaped.
+func (p *serverCmd) refreshPeers(socket shared.Socket) error {
+
+	//
+	// The hosts we'll send
+	//
+	var connected []string
+
+	//
+	// Populate the `connected` array with an entry for
+	// each connected client.
+	//
+	// We'll send "IP[TAB]NAME"
+	//
+	p.assignedMutex.Lock()
+	for _, client := range p.assigned {
+		if client != nil {
+			connected = append(connected,
+				fmt.Sprintf("%s\t%s", client.localIP, client.name))
+		}
+	}
+	p.assignedMutex.Unlock()
+
+	//
+	// Send the update-message
+	//
+	socket.BroadcastCommand("update-peers", connected)
+	return nil
+}
+
 // serveWs is the handler which the VPN-clients will hit.
 //
 // When we get a new connection we ensure that the key matches
@@ -468,7 +501,7 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 		// we don't leak connected-counts (and also that
 		// we free up the IP that was previously assigned).
 		//
-		func(x string) {
+		func(sock shared.Socket, x string) {
 			p.assignedMutex.Lock()
 
 			// Only reap if we've not already done so.
@@ -480,10 +513,24 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 			p.assignedMutex.Unlock()
 
 			//
-			// TODO: Have a status-endpoint
+			// Update our peers.
 			//
-			p.Dump()
+			p.refreshPeers(sock)
 		})
+
+	//
+	// When a new client connects to the server it will send
+	// a "refresh" command.
+	//
+	// The refresh command will instruct the server to broadcast
+	// the list of all know-connections to each peer.
+	//
+	// i.e. When host 3 joins the VPN host1 & host2 will be told
+	// about it.
+	//
+	socket.AddCommandHandler("refresh-peers", func(args []string) error {
+		return (p.refreshPeers(*socket))
+	})
 
 	//
 	// Launch the "up" script, if we can.
