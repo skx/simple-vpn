@@ -332,7 +332,7 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 // RemoteIP retrieves the remote IP address of the requesting HTTP-client.
 //
 // This is used for logging, and storing the remote (public) IP of each
-// connecting clinet.
+// connecting client.
 func RemoteIP(request *http.Request) string {
 
 	//
