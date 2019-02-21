@@ -125,7 +125,7 @@ The configuration file has two mandatory settings:
 
 ## Advanced Configuration
 
-The server will assign each client which connects the next unused IP address from the range it is configured to serve.
+The server will assign each client which connects the next unused IP address from the range it is configured to serve. IPv6 CIDR ranges are supported.
 
 Because each client identifies itself with the hostname of the local system it is possible to map static IP addresses to any remote host, which is useful if you wish to setup DNS entries, etc.
 

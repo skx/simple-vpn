@@ -32,7 +32,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var ip net.IP
-var subnet *net.IPNet
+var subnet, currentSubnet *net.IPNet
 
 // connections is a structure to hold data about connected
 // clients
@@ -41,6 +41,10 @@ type connection struct {
 	remoteIP string
 	name     string
 }
+
+// Max zeros in the subnet mask for initialization
+// Number of unassinged IPs on server start is bounded by 2^maxSubnetBits
+const maxSubnetBits = 20
 
 // serverCmd is the structure for this sub-command
 type serverCmd struct {
@@ -162,20 +166,49 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	//
 	// Otherwise we need to find the next free one.
 	//
-	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
+	pickIPFromSubnet := func() string {
+		for ip := ip.Mask(currentSubnet.Mask); currentSubnet.Contains(ip); incIP(ip) {
 
-		s := ip.String()
+			s := ip.String()
 
-		// Skip the first IP.
-		if strings.HasSuffix(s, ".0") {
-			continue
+			// Skip first IP in the case of IPv4 subnets
+			if ip.To4() != nil && strings.HasSuffix(s, ".0") {
+				continue
+			}
+
+			if p.assigned[s] == nil {
+				return s
+			}
 		}
+		return ""
+	}
 
-		if p.assigned[s] == nil {
-			p.assigned[s] = &connection{name: name, localIP: s, remoteIP: remote}
-			p.assignedMutex.Unlock()
-			return s, nil
+	selectedIP := pickIPFromSubnet()
+	if selectedIP == "" {
+		// If we got here, we couldn't find a free IP address in the currentSubnet
+		// Check if there are IPs in the provided subnet
+		subnetOnes, _ := subnet.Mask.Size()
+		currentSubnetOnes, currentSubnetBits := currentSubnet.Mask.Size()
+		if subnetOnes < currentSubnetOnes {
+			// There's space to expand currentSubnet into subnet
+			fmt.Println("Generating new pool of free IPs")
+			mask := net.CIDRMask(currentSubnetOnes-1, currentSubnetBits)
+			currentSubnet = &net.IPNet{IP: ip.Mask(mask), Mask: mask}
+			// Mark the new IPs as unassigned
+			for ip := ip.Mask(currentSubnet.Mask); currentSubnet.Contains(ip); incIP(ip) {
+				s := ip.String()
+				if _, ok := p.assigned[s]; !ok {
+					p.assigned[s] = nil
+				}
+			}
+			// Get a new selectedIP
+			selectedIP = pickIPFromSubnet()
 		}
+	}
+	if selectedIP != "" {
+		p.assigned[selectedIP] = &connection{name: name, localIP: selectedIP, remoteIP: remote}
+		p.assignedMutex.Unlock()
+		return selectedIP, nil
 	}
 
 	p.assignedMutex.Unlock()
@@ -241,15 +274,30 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return subcommands.ExitFailure
 	}
 
+	// Check if the IPs in the subnet are too big to hold in memory at once
+	ones, bits := subnet.Mask.Size()
+	// number of IPs = 2^(bits - ones)
+	subnetBits := bits - ones
+
+	currentSubnet = subnet
+	if subnetBits > maxSubnetBits {
+		fmt.Println(fmt.Sprintf("Subnet CIDR: provided size %d, using initial size %d", subnetBits, maxSubnetBits))
+		subnetBits = maxSubnetBits
+		mask := net.CIDRMask(bits-subnetBits, bits)
+		// Set the currently used subnet to a newly created smaller subnet
+		currentSubnet = &net.IPNet{IP: ip.Mask(mask), Mask: mask}
+	}
+
 	//
 	// For each IP in the range we now mark the IP as free.
 	//
 	p.assigned = make(map[string]*connection)
-	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
+	for ip := ip.Mask(currentSubnet.Mask); currentSubnet.Contains(ip); incIP(ip) {
 
 		s := ip.String()
 
-		if strings.HasSuffix(s, ".0") {
+		// Skip first address in the case of IPv4 subnets
+		if ip.To4() != nil && strings.HasSuffix(s, ".0") {
 			continue
 		}
 

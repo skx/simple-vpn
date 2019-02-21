@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -54,13 +55,24 @@ func (p *clientCmd) configureClient(dev *water.Interface, ip string, subnet stri
 	mtuStr := fmt.Sprintf("%d", mtu)
 	devStr := dev.Name()
 
+	// Parse the string as an IP
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return fmt.Errorf("Failed to parse %s as a valid IP", ip)
+	}
+
+	addr := ip + "/128"
+	if parsedIP.To4() != nil {
+		addr = ip + "/32"
+	}
+
 	//
 	// The commands we're going to execute
 	//
 	cmds := [][]string{
 		{"ip", "link", "set", "dev", devStr, "up"},
 		{"ip", "link", "set", "mtu", mtuStr, "dev", devStr},
-		{"ip", "addr", "add", ip + "/32", "dev", devStr},
+		{"ip", "addr", "add", addr, "dev", devStr},
 		{"ip", "route", "add", gateway, "dev", devStr},
 		{"ip", "route", "add", subnet, "via", gateway},
 	}
