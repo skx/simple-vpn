@@ -59,9 +59,9 @@ func (p *clientCmd) configureClient(dev *water.Interface, ip string, subnet stri
 	//
 	fmt.Printf("Client IP is %s\n", ip)
 	if strings.Contains(ip, ":") {
-		ip += "/32"
-	} else {
 		ip += "/128"
+	} else {
+		ip += "/32"
 	}
 
 	//
