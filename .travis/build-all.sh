@@ -6,43 +6,32 @@ BASE="simple-vpn"
 # Get the dependencies
 go get -t -v -d $(go list ./...)
 
+
 #
-# We could build on multiple platforms/archs.
+# Function to do a build
 #
-# Except we use CGO, so we can't.
+function do_build {
+
+    export GOOS=$1
+    export GOARCH=$2
+
+    if [ "${GOARCH}" = "arm64" ]; then
+        export GOOS=""
+        export GOARM=7
+    fi
+
+    OUT=$3
+    echo "OUT: $OUT"
+    go build -ldflags "-X main.version=$(git describe --tags)" -o "${OUT}"
+}
+
 #
-BUILD_PLATFORMS="linux"
-BUILD_ARCHS="amd64"
+# Linux
+#
+do_build linux amd64 "${BASE}-linux-amd64"
+do_build linux 386 "${BASE}-linux-i386"
 
-# For each platform
-for OS in ${BUILD_PLATFORMS[@]}; do
-
-    # For each arch
-    for ARCH in ${BUILD_ARCHS[@]}; do
-
-        # Setup a suffix for the binary
-        SUFFIX="${OS}"
-
-        # i386 is better than 386
-        if [ "$ARCH" = "386" ]; then
-            SUFFIX="${SUFFIX}-i386"
-        else
-            SUFFIX="${SUFFIX}-${ARCH}"
-        fi
-
-        # Windows binaries should end in .EXE
-        if [ "$OS" = "windows" ]; then
-            SUFFIX="${SUFFIX}.exe"
-        fi
-
-        echo "Building for ${OS} [${ARCH}] -> ${BASE}-${SUFFIX}"
-
-        # Run the build
-        export GOARCH=${ARCH}
-        export GOOS=${OS}
-        export CGO_ENABLED=1
-
-        go build -ldflags "-X main.version=$(git describe --tags)" -o "${BASE}-${SUFFIX}"
-
-    done
-done
+#
+# ARM
+#
+do_build arm64 arm64  "${BASE}-arm64"
