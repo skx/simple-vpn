@@ -167,7 +167,8 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 		s := ip.String()
 
 		// Skip the first IP.
-		if strings.HasSuffix(s, ".0") {
+		if strings.HasSuffix(s, ".0") ||
+			strings.HasSuffix(s, ":") {
 			continue
 		}
 
@@ -242,30 +243,41 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	}
 
 	//
+	// Here we used to mark every IP in the network range
+	// as being allocated.
+	//
+	// Instead we'll only claim the first, which will be the
+	// server IP.
+	//
 	// For each IP in the range we now mark the IP as free.
 	//
 	p.assigned = make(map[string]*connection)
-	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
+	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip) && p.serverIP == ""; incIP(ip) {
 
 		s := ip.String()
 
-		if strings.HasSuffix(s, ".0") {
+		// Skip anything that ends in `.0`, or `:`.
+		if strings.HasSuffix(s, ".0") ||
+			strings.HasSuffix(s, ":") {
 			continue
 		}
 
-		p.assigned[s] = nil
-
 		//
-		// The first IP in the range is the server's IP.
+		// OK we've got the IP for the server
 		//
-		if p.serverIP == "" {
-			p.serverIP = s
+		p.serverIP = s
+		p.assigned[s] = &connection{localIP: s, remoteIP: s, name: "vpn-server"}
+		fmt.Printf("VPN server has IP %s\n", p.serverIP)
 
-			fmt.Printf("VPN server has IP %s\n", p.serverIP)
+	}
 
-			// Mark this IP as being unavailable
-			p.assigned[s] = &connection{localIP: s, remoteIP: s, name: "vpn-server"}
-		}
+	//
+	// Are we using IPv6?
+	//
+	if strings.Contains(p.serverIP, ":") {
+		fmt.Printf("VPN server using IPv6.\n")
+	} else {
+		fmt.Printf("VPN server using IPv4.\n")
 	}
 
 	//
