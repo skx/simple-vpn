@@ -1,3 +1,17 @@
+// shared/socketHandler.go contains code to route traffic over
+// the socket.
+//
+// When a client connects to the VPN server their local tun device
+// is one end of the socket, and the WS-connection is the other.
+//
+// For the server we have an array of such things, and we handle
+// traffic by sending to the "correct" socket by MAC address - except
+// in the case of IPv6 where we broadcast.
+//
+// IPv6 behaviour could, and should, be improved.  But handling router
+// advertisements, neighbour solicitations, etc, is hard.  Better to
+// keep it simple.  Keep it secret.  Keep it safe.
+
 package shared
 
 import (
@@ -263,6 +277,10 @@ func (s *Socket) Serve(ipv6 bool) {
 
 				if len(msg) >= 14 {
 
+					//
+					// IPv4 ttaffic involves routing
+					// correctly.
+					//
 					if ipv6 == false {
 						s.setMACFrom(msg)
 
@@ -281,6 +299,10 @@ func (s *Socket) Serve(ipv6 bool) {
 						}
 					} else {
 
+						//
+						// IPv6 traffic is just
+						// broadcast as-is.
+						//
 						BroadcastMessage(websocket.BinaryMessage, msg, s)
 					}
 				}
@@ -290,7 +312,7 @@ func (s *Socket) Serve(ipv6 bool) {
 				}
 				s.iface.Write(msg)
 			} else if msgType == websocket.TextMessage {
-				// in-band stuff.
+				// in-band messages over the WS link
 
 				str := strings.Split(string(msg), "|")
 				if len(str) < 2 {
