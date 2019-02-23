@@ -558,6 +558,10 @@ func (p *serverCmd) serveWs(w http.ResponseWriter, r *http.Request) {
 	//    1.2.3.0       -> (internal) IP of VPN-server
 	//
 	socket.SendCommand("init", p.subnet, clientIP, fmt.Sprintf("%d", p.mtu), p.serverIP)
-	socket.Serve()
+
+	//
+	// IPv6 requires different handling.  Sigh.
+	//
+	socket.Serve(strings.Contains(p.serverIP, ":"))
 	socket.Wait()
 }

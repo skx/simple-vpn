@@ -236,7 +236,7 @@ func (s *Socket) tryServeIfaceRead() {
 
 // Serve is the main-driver which never returns
 // Handle proxying data back and forth..
-func (s *Socket) Serve() {
+func (s *Socket) Serve(ipv6 bool) {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
 	s.tryServeIfaceRead()
@@ -262,19 +262,25 @@ func (s *Socket) Serve() {
 			if msgType == websocket.BinaryMessage {
 
 				if len(msg) >= 14 {
-					s.setMACFrom(msg)
 
-					dest := GetDestMAC(msg)
-					isUnicast := MACIsUnicast(dest)
+					if ipv6 == false {
+						s.setMACFrom(msg)
 
-					var sd *Socket
-					if isUnicast {
-						sd = FindSocketByMAC(dest)
-						if sd != nil {
-							sd.WriteMessage(websocket.BinaryMessage, msg)
-							continue
+						dest := GetDestMAC(msg)
+						isUnicast := MACIsUnicast(dest)
+
+						var sd *Socket
+						if isUnicast {
+							sd = FindSocketByMAC(dest)
+							if sd != nil {
+								sd.WriteMessage(websocket.BinaryMessage, msg)
+								continue
+							}
+						} else {
+							BroadcastMessage(websocket.BinaryMessage, msg, s)
 						}
 					} else {
+
 						BroadcastMessage(websocket.BinaryMessage, msg, s)
 					}
 				}
