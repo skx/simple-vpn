@@ -1,4 +1,3 @@
-[![Travis CI](https://img.shields.io/travis/skx/simple-vpn/master.svg?style=flat-square)](https://travis-ci.org/skx/simple-vpn)
 [![Go Report Card](https://goreportcard.com/badge/github.com/skx/simple-vpn)](https://goreportcard.com/report/github.com/skx/simple-vpn)
 [![license](https://img.shields.io/github/license/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/blob/master/LICENSE)
 [![Release](https://img.shields.io/github/release/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/releases/latest)
@@ -130,6 +129,17 @@ The server will assign each client which connects the next unused IP address fro
 Because each client identifies itself with the hostname of the local system it is possible to map static IP addresses to any remote host, which is useful if you wish to setup DNS entries, etc.
 
 To setup a static IP see the commented-out sections in the [server.cfg](etc/server.cfg) file.
+
+
+## Github Setup
+
+This repository is configured to run tests upon every commit, and when
+pull-requests are created/updated.  The testing is carried out via
+[.github/run-tests.sh](.github/run-tests.sh) which is used by the
+[github-action-tester](https://github.com/skx/github-action-tester) action.
+
+Releases are automated in a similar fashion via [.github/build](.github/build),
+and the [github-action-publish-binaries](https://github.com/skx/github-action-publish-binaries) action.
 
 
 Steve
