@@ -1,3 +1,17 @@
+// shared/socketHandler.go contains code to route traffic over
+// the socket.
+//
+// When a client connects to the VPN server their local tun device
+// is one end of the socket, and the WS-connection is the other.
+//
+// For the server we have an array of such things, and we handle
+// traffic by sending to the "correct" socket by MAC address - except
+// in the case of IPv6 where we broadcast.
+//
+// IPv6 behaviour could, and should, be improved.  But handling router
+// advertisements, neighbour solicitations, etc, is hard.  Better to
+// keep it simple.  Keep it secret.  Keep it safe.
+
 package shared
 
 import (
@@ -236,7 +250,7 @@ func (s *Socket) tryServeIfaceRead() {
 
 // Serve is the main-driver which never returns
 // Handle proxying data back and forth..
-func (s *Socket) Serve() {
+func (s *Socket) Serve(ipv6 bool) {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
 	s.tryServeIfaceRead()
@@ -262,19 +276,33 @@ func (s *Socket) Serve() {
 			if msgType == websocket.BinaryMessage {
 
 				if len(msg) >= 14 {
-					s.setMACFrom(msg)
 
-					dest := GetDestMAC(msg)
-					isUnicast := MACIsUnicast(dest)
+					//
+					// IPv4 ttaffic involves routing
+					// correctly.
+					//
+					if ipv6 == false {
+						s.setMACFrom(msg)
 
-					var sd *Socket
-					if isUnicast {
-						sd = FindSocketByMAC(dest)
-						if sd != nil {
-							sd.WriteMessage(websocket.BinaryMessage, msg)
-							continue
+						dest := GetDestMAC(msg)
+						isUnicast := MACIsUnicast(dest)
+
+						var sd *Socket
+						if isUnicast {
+							sd = FindSocketByMAC(dest)
+							if sd != nil {
+								sd.WriteMessage(websocket.BinaryMessage, msg)
+								continue
+							}
+						} else {
+							BroadcastMessage(websocket.BinaryMessage, msg, s)
 						}
 					} else {
+
+						//
+						// IPv6 traffic is just
+						// broadcast as-is.
+						//
 						BroadcastMessage(websocket.BinaryMessage, msg, s)
 					}
 				}
@@ -284,7 +312,7 @@ func (s *Socket) Serve() {
 				}
 				s.iface.Write(msg)
 			} else if msgType == websocket.TextMessage {
-				// in-band stuff.
+				// in-band messages over the WS link
 
 				str := strings.Split(string(msg), "|")
 				if len(str) < 2 {

@@ -3,7 +3,7 @@ package shared
 // MacAddr stores a MAC address.
 type MacAddr [6]byte
 
-// GetSrcMAC retreives the source MAC address of a TCP/IP packet.
+// GetSrcMAC retrieves the source MAC address of a TCP/IP packet.
 func GetSrcMAC(packet []byte) MacAddr {
 	var mac MacAddr
 	copy(mac[:], packet[6:12])

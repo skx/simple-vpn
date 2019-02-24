@@ -55,12 +55,22 @@ func (p *clientCmd) configureClient(dev *water.Interface, ip string, subnet stri
 	devStr := dev.Name()
 
 	//
+	// Ensure we have the right mask for the client IP
+	//
+	fmt.Printf("Client IP is %s\n", ip)
+	if strings.Contains(ip, ":") {
+		ip += "/128"
+	} else {
+		ip += "/32"
+	}
+
+	//
 	// The commands we're going to execute
 	//
 	cmds := [][]string{
 		{"ip", "link", "set", "dev", devStr, "up"},
 		{"ip", "link", "set", "mtu", mtuStr, "dev", devStr},
-		{"ip", "addr", "add", ip + "/32", "dev", devStr},
+		{"ip", "addr", "add", ip, "dev", devStr},
 		{"ip", "route", "add", gateway, "dev", devStr},
 		{"ip", "route", "add", subnet, "via", gateway},
 	}
@@ -360,7 +370,7 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return nil
 	})
 
-	socket.Serve()
+	socket.Serve(false)
 	socket.Wait()
 
 	return subcommands.ExitSuccess
