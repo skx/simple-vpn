@@ -264,6 +264,9 @@ func (s *Socket) Serve(ipv6 bool) {
 		defer s.closeDone()
 
 		for {
+			//
+			// Read message over the WS connection,
+			//
 			msgType, msg, err := s.conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
@@ -272,36 +275,60 @@ func (s *Socket) Serve(ipv6 bool) {
 				return
 			}
 
-			// IP data
+			//
+			// The websocket connection gets two things:
+			//
+			// Binary network-data, or inline-commands.
+			//
+			// Here we handle binary stuff.
+			//
 			if msgType == websocket.BinaryMessage {
 
 				if len(msg) >= 14 {
 
 					//
-					// IPv4 ttaffic involves routing
-					// correctly.
+					// IPv4 traffic involves routing "correctly".
 					//
 					if ipv6 == false {
-						s.setMACFrom(msg)
 
+						//
+						// Look at the packet-data to get the src/dsg.
+						//
+						s.setMACFrom(msg)
 						dest := GetDestMAC(msg)
+
+						//
+						// Is this unicast traffic?
+						//
 						isUnicast := MACIsUnicast(dest)
 
+						//
+						// If unicast - sending to one destination - then
+						// lookup the socket and send it there.
+						//
 						var sd *Socket
 						if isUnicast {
+
+							//
+							// If we find the destination, then send it.
+							//
 							sd = FindSocketByMAC(dest)
 							if sd != nil {
 								sd.WriteMessage(websocket.BinaryMessage, msg)
 								continue
 							}
 						} else {
+							//
+							// OK multicast/broadcast.
+							//
+							// Send to everybody.
+							//
 							BroadcastMessage(websocket.BinaryMessage, msg, s)
 						}
 					} else {
 
 						//
-						// IPv6 traffic is just
-						// broadcast as-is.
+						// IPv6 traffic is just broadcast as-is.
 						//
 						BroadcastMessage(websocket.BinaryMessage, msg, s)
 					}
@@ -311,7 +338,9 @@ func (s *Socket) Serve(ipv6 bool) {
 					continue
 				}
 				s.iface.Write(msg)
+
 			} else if msgType == websocket.TextMessage {
+
 				// in-band messages over the WS link
 
 				str := strings.Split(string(msg), "|")
