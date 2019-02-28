@@ -30,11 +30,12 @@ import (
 // Type of reaping function
 type reap func(Socket, string)
 
-var lastCommandId uint64
+var lastCommandID uint64
 
 var defaultMac = [6]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
-var macTable map[MacAddr]*Socket = make(map[MacAddr]*Socket)
+var macTable = make(map[MacAddr]*Socket)
+
 var macLock sync.RWMutex
 var allSockets = make(map[*Socket]*Socket)
 var allSocketsLock sync.RWMutex
@@ -113,14 +114,14 @@ func (s *Socket) Wait() {
 }
 
 // rawSendCommand sends a "command" over our websocket link
-func (s *Socket) rawSendCommand(commandId string, command string, args ...string) error {
+func (s *Socket) rawSendCommand(commandID string, command string, args ...string) error {
 	return s.WriteMessage(websocket.TextMessage,
-		[]byte(fmt.Sprintf("%s|%s|%s", commandId, command, strings.Join(args, "|"))))
+		[]byte(fmt.Sprintf("%s|%s|%s", commandID, command, strings.Join(args, "|"))))
 }
 
 // SendCommand sends a "command" over our websocket link
 func (s *Socket) SendCommand(command string, args ...string) error {
-	return s.rawSendCommand(fmt.Sprintf("%d", atomic.AddUint64(&lastCommandId, 1)), command, args...)
+	return s.rawSendCommand(fmt.Sprintf("%d", atomic.AddUint64(&lastCommandID, 1)), command, args...)
 }
 
 // BroadcastCommand sends the given data over all sockets.
@@ -174,7 +175,7 @@ func (s *Socket) SetInterface(iface *water.Interface) error {
 	defer s.writeLock.Unlock()
 
 	if s.iface != nil {
-		return errors.New("Cannot re-define interface. Already set.")
+		return errors.New("cannot re-define interface. Already set")
 	}
 	s.iface = iface
 	s.tryServeIfaceRead()
@@ -349,14 +350,14 @@ func (s *Socket) Serve(ipv6 bool) {
 					continue
 				}
 
-				commandId := str[0]
+				commandID := str[0]
 				commandName := str[1]
 				if commandName == "reply" {
 					commandResult := "N/A"
 					if len(str) > 2 {
 						commandResult = str[2]
 					}
-					log.Printf("[%s] Got command reply ID %s: %s", s.clientIP, commandId, commandResult)
+					log.Printf("[%s] Got command reply ID %s: %s", s.clientIP, commandID, commandResult)
 					continue
 				}
 
@@ -370,7 +371,7 @@ func (s *Socket) Serve(ipv6 bool) {
 					log.Printf("[%s] Error in in-band command %s: %v", s.clientIP, commandName, err)
 				}
 
-				s.rawSendCommand(commandId, "reply", fmt.Sprintf("%v", err == nil))
+				s.rawSendCommand(commandID, "reply", fmt.Sprintf("%v", err == nil))
 			}
 		}
 	}()
