@@ -275,7 +275,7 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			x := exec.Command(cmd)
 			x.Stdout = os.Stdout
 			x.Stderr = os.Stderr
-			err := x.Run()
+			err = x.Run()
 			if err != nil {
 				fmt.Printf("Failed to run %s - %s",
 					cmd, err.Error())

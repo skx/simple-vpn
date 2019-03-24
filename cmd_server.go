@@ -162,9 +162,9 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	//
 	// Otherwise we need to find the next free one.
 	//
-	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
+	for i := ip.Mask(subnet.Mask); subnet.Contains(ip); incIP(ip) {
 
-		s := ip.String()
+		s := i.String()
 
 		// Skip the first IP.
 		if strings.HasSuffix(s, ".0") ||
@@ -252,9 +252,9 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	// For each IP in the range we now mark the IP as free.
 	//
 	p.assigned = make(map[string]*connection)
-	for ip := ip.Mask(subnet.Mask); subnet.Contains(ip) && p.serverIP == ""; incIP(ip) {
+	for i := ip.Mask(subnet.Mask); subnet.Contains(ip) && p.serverIP == ""; incIP(ip) {
 
-		s := ip.String()
+		s := i.String()
 
 		// Skip anything that ends in `.0`, or `:`.
 		if strings.HasSuffix(s, ".0") ||
