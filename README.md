@@ -2,9 +2,19 @@
 [![license](https://img.shields.io/github/license/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/blob/master/LICENSE)
 [![Release](https://img.shields.io/github/release/skx/simple-vpn.svg)](https://github.com/skx/simple-vpn/releases/latest)
 
+* [Simple-VPN](#simple-vpn)
+* [Installation](#installation)
+  * [Source Installation go &lt;=  1.11](#source-installation-go---111)
+  * [Source installation go  &gt;= 1.12](#source-installation-go---112)
+* [Encryption &amp; Overhead](#encryption--overhead)
+* [VPN-Server Setup](#vpn-server-setup)
+* [VPN-Client Setup](#vpn-client-setup)
+* [Advanced Configuration](#advanced-configuration)
+* [Github Setup](#github-setup)
+
 # Simple-VPN
 
-This project is a VPN-server, written in golang, using websockets as a transport.  The idea is that multiple-nodes each connect to a central VPN-server, and once connected they can talk to _each other_ securely, regardless of their location, on a private subnet.
+This project is a VPN-server, written in golang, using websockets as a transport.  The idea is that multiple-nodes each connect to a central VPN-server, and once connected they can talk to _each other_ securely, regardless of their location.
 
 The following image illustrates the expected setup:
 
@@ -19,11 +29,36 @@ While it is possible to use this software to mask your laptop's IP while traveli
 It should be noted that the VPN-server will become a single point of failure if you're using it to join (say) a database-host located at Hetzner with a number of webserver-nodes split between Linode and Digital Ocean, but being a simple service, easy to deploy, it should be trivial to spin up a replacement in a hurry.
 
 
+## Installation
+
+There are two ways to install this project from source, which depend on the version of the [go](https://golang.org/) version you're using.
+
+Alternatively you can download the latest release from our [releases page](https://github.com/skx/simple-vpn/releases/) if you're running upon AMD64-GNU/Linux host.  (Unfortunately we use `CGO`, and the water-library, which makes our code non-portable for now.)
+
+
+### Source Installation go <=  1.11
+
+If you're using `go` before 1.11 then the following command should fetch/update `overseer`, and install it upon your system:
+
+     $ go get -u github.com/skx/simple-vpn
+
+### Source installation go  >= 1.12
+
+If you're using a more recent version of `go` (which is _highly_ recommended), you need to clone to a directory which is not present upon your `GOPATH`:
+
+    git clone https://github.com/skx/simple-vpn
+    cd simple-vpn
+    go install
+
+
+
+
+
 ## Encryption & Overhead
 
-The VPN-server __does not__ implement any kind of encryption itself, nor does it handle access-control beyond the use of a shared-secret.
+The VPN-server __does not__ implement any kind of encryption itself, nor does it handle access-control beyond the use of a shared-secret.  Is this insane?  Actually no.
 
-Is this insane?  Actually no.  I'd rather add no encryption than badly implemented encryption!
+The expectation is that you'll host the VPN-server behind an nginx/apache proxy and you'll add TLS there (i.e. Let's Encrypt).  Providing all the clients connect to the server over a TLS/SSL-protected socket then things are secure:
 
 * The use of TLS prevents traffic from being sniffed.
   * This means that the connections made from one host, to another, over their private network will be unreadable to hosts in the same location.
@@ -33,17 +68,6 @@ Is this insane?  Actually no.  I'd rather add no encryption than badly implement
 I believe this solution is "secure enough", but if you have concerns you can ensure that all the traffic you send over it uses TLS itself, for example database-connections can use TLS, etc.
 
 Because traffic routed between two nodes on their private IP addresses has to be routed via the VPN-server expect to see [approximately 50% overhead](https://github.com/skx/simple-vpn/issues/9).
-
-
-## Installation
-
-Providing you have a working go-installation you should be able to install this software by running:
-
-    go get -u github.com/skx/simple-vpn
-
-> **NOTE**: If you've previously downloaded the code this will update your installation to the most recent available version.
-
-Alternatively you can download the latest release from our [releases page](https://github.com/skx/simple-vpn/releases/) if you're running upon AMD64-GNU/Linux host.  (Unfortunately we use `CGO` which makes compiling binaries for other platforms difficult.)
 
 
 
@@ -73,7 +97,7 @@ To proxy traffic to this server, via `nginx`, you could have a configuration fil
         ssl on;
         ssl_certificate      /etc/lets.encrypt/ssl/vpn.example.com.full;
         ssl_certificate_key  /etc/lets.encrypt/ssl/vpn.example.com.key;
-        ssl_dhparam /etc/nginx/ssl/dhparam.pem;
+        ssl_dhparam          /etc/nginx/ssl/dhparam.pem;
 
         ssl_prefer_server_ciphers on;
         ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
