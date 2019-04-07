@@ -311,17 +311,23 @@ func (p *clientCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	//
 	socket.AddCommandHandler("update-peers", func(args []string) error {
 
+		fmt.Printf("Preparing to update peer-list\n")
+
 		//
 		// If the client has not defined a `peers` command then
 		// we can just return here.
 		//
 		cmd := p.config.Get("peers")
 		if cmd == "" {
+			fmt.Printf("Peer command is empty.\n")
 			return nil
 		}
 
 		//
 		// OK we have a command.
+		//
+		fmt.Printf("Updating peer-list now.\n")
+
 		//
 		// We're given an array of strings such as:
 		//

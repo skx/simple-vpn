@@ -162,7 +162,7 @@ func (p *serverCmd) pickIP(name string, remote string) (string, error) {
 	//
 	// Otherwise we need to find the next free one.
 	//
-	for i := i.Mask(subnet.Mask); subnet.Contains(i); incIP(i) {
+	for i := ip.Mask(subnet.Mask); subnet.Contains(i); incIP(i) {
 
 		s := i.String()
 
@@ -252,7 +252,7 @@ func (p *serverCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	// For each IP in the range we now mark the IP as free.
 	//
 	p.assigned = make(map[string]*connection)
-	for i := i.Mask(subnet.Mask); subnet.Contains(i) && p.serverIP == ""; incIP(i) {
+	for i := ip.Mask(subnet.Mask); subnet.Contains(i) && p.serverIP == ""; incIP(i) {
 
 		s := i.String()
 
@@ -390,6 +390,14 @@ func (p *serverCmd) refreshPeers(socket shared.Socket) error {
 		}
 	}
 	p.assignedMutex.Unlock()
+
+	//
+	// We're going to send a refresh
+	//
+	fmt.Printf("Updating each peer with the connected peers\n")
+	for i, e := range connected {
+		fmt.Printf("\t%d: %s\n", i, e)
+	}
 
 	//
 	// Send the update-message
