@@ -38,7 +38,7 @@ Alternatively you can download the latest release from our [releases page](https
 
 ### Source Installation go <=  1.11
 
-If you're using `go` before 1.11 then the following command should fetch/update `overseer`, and install it upon your system:
+If you're using `go` before 1.11 then the following command should fetch/update the projectl and install it upon your system:
 
      $ go get -u github.com/skx/simple-vpn
 
